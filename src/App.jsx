@@ -144,7 +144,7 @@ function App() {
   }
 
   const handleNavClick = (label) => {
-    setIsSidebarOpen(true)
+    setIsSidebarOpen(false)
     setActiveNav(label)
     if (label === 'Dashboard') {
       setSelectedFilter('All')
@@ -227,16 +227,6 @@ function App() {
             <h2>FocusFlow</h2>
           </div>
         </div>
-
-        <button
-          type="button"
-          className="sidebar-toggle"
-          aria-label={isSidebarOpen ? 'Collapse navigation' : 'Expand navigation'}
-          aria-expanded={isSidebarOpen}
-          onClick={() => setIsSidebarOpen((previous) => !previous)}
-        >
-          <span aria-hidden="true">{isSidebarOpen ? '←' : '→'}</span>
-        </button>
 
         <nav className="nav-panel">
           {['Dashboard', 'Planner', 'Habits', 'Reports'].map((item) => (
