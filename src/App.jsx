@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 
 const storageKey = 'focusflow-tasks'
+const habitsStorageKey = 'focusflow-habits'
 
 const initialTasks = [
   { id: 1, title: 'Design landing page mockup', category: 'Product', priority: 'High', completed: true, minutes: 45 },
@@ -17,6 +18,14 @@ const focusGoals = [
   { label: 'Reading time', value: '27 min', color: '#22c55e' },
   { label: 'Health check-ins', value: '6 / 7', color: '#f59e0b' },
 ]
+const initialHabits = focusGoals.map((goal, index) => ({
+  id: `default-${index}`,
+  name: goal.label,
+  frequency: 'daily',
+  streak: Number.parseInt(goal.value, 10) || 0,
+  completedToday: false,
+  color: goal.color,
+}))
 
 const filterOptions = ['All', 'High', 'Medium', 'Low', 'Completed']
 const formatDueDate = (dueDate) => dueDate
@@ -50,6 +59,17 @@ function App() {
       return Array.isArray(parsed) ? parsed : initialTasks
     } catch {
       return initialTasks
+    }
+  })
+  const [habits, setHabits] = useState(() => {
+    const saved = localStorage.getItem(habitsStorageKey)
+    if (!saved) return initialHabits
+
+    try {
+      const parsed = JSON.parse(saved)
+      return Array.isArray(parsed) ? parsed : initialHabits
+    } catch {
+      return initialHabits
     }
   })
 
@@ -105,6 +125,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify(tasks))
   }, [tasks])
+
+  useEffect(() => {
+    localStorage.setItem(habitsStorageKey, JSON.stringify(habits))
+  }, [habits])
 
   useEffect(() => {
     if (authState !== 'authenticated') return undefined
@@ -308,7 +332,39 @@ function App() {
     if (editingTask?.id === id) {
       setEditingTask(null)
     }
+
     setReportMessage('Task deleted.')
+  }
+
+  const handleAddHabit = (event) => {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    const name = String(form.get('name') || '').trim()
+    if (!name) return
+
+    setHabits((previous) => [{
+      id: `habit-${Date.now()}`,
+      name,
+      frequency: String(form.get('frequency') || 'daily'),
+      streak: 0,
+      completedToday: false,
+      color: '#8b5cf6',
+    }, ...previous])
+    event.currentTarget.reset()
+    setReportMessage(`${name} habit added.`)
+  }
+
+  const handleHabitCheckIn = (id) => {
+    setHabits((previous) => previous.map((habit) => {
+      if (habit.id !== id) return habit
+      const completedToday = !habit.completedToday
+      return {
+        ...habit,
+        completedToday,
+        streak: completedToday ? habit.streak + 1 : Math.max(0, habit.streak - 1),
+      }
+    }))
+    setReportMessage('Habit progress updated.')
   }
 
   const handleNavClick = (label) => {
@@ -594,12 +650,29 @@ function App() {
 
             {activeNav === 'Habits' && (
               <div className="section-page-grid">
-                {focusGoals.map((goal) => (
-                  <article className="panel page-card" key={goal.label}>
-                    <span className="goal-dot" style={{ background: goal.color }} />
-                    <p className="eyebrow muted">{goal.label}</p>
-                    <h3>{goal.value}</h3>
-                    <button type="button" className="ghost-button" onClick={() => setReportMessage(`${goal.label} check-in recorded.`)}>Check in</button>
+                <article className="panel page-card page-card-wide">
+                  <p className="eyebrow muted">Build your routine</p>
+                  <h3>Create a habit</h3>
+                  <p className="page-card-copy">Add a small repeatable action and check it off each day.</p>
+                  <form className="habit-form" onSubmit={handleAddHabit}>
+                    <input name="name" type="text" placeholder="e.g. Read for 20 minutes" aria-label="New habit name" required />
+                    <select name="frequency" aria-label="Habit frequency" defaultValue="daily">
+                      <option value="daily">Every day</option>
+                      <option value="weekly">Every week</option>
+                      <option value="monthly">Every month</option>
+                    </select>
+                    <button type="submit" className="primary-button small-btn">Add habit</button>
+                  </form>
+                </article>
+                {habits.map((habit) => (
+                  <article className={`panel page-card habit-card ${habit.completedToday ? 'habit-complete' : ''}`} key={habit.id}>
+                    <span className="goal-dot" style={{ background: habit.color }} />
+                    <p className="eyebrow muted">{habit.frequency} habit</p>
+                    <h3>{habit.name}</h3>
+                    <p className="habit-streak">{habit.streak} day streak</p>
+                    <button type="button" className={habit.completedToday ? 'ghost-button' : 'primary-button'} onClick={() => handleHabitCheckIn(habit.id)}>
+                      {habit.completedToday ? 'Completed today' : 'Check in today'}
+                    </button>
                   </article>
                 ))}
               </div>
