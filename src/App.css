@@ -219,6 +219,12 @@ select {
   flex-wrap: wrap;
 }
 
+.inline-status {
+  margin: 14px 0 0;
+  color: #d9c8ff;
+  font-size: 0.92rem;
+}
+
 .hero-metric {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -438,6 +444,46 @@ select {
   gap: 10px;
 }
 
+.task-edit-form {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) minmax(110px, 0.8fr) minmax(110px, 0.8fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.task-edit-form input,
+.task-edit-form select {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  border-radius: 10px;
+  background: white;
+  color: #0f172a;
+  box-sizing: border-box;
+}
+
+.task-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.task-action-button {
+  border: 0;
+  background: transparent;
+  color: #4c1d95;
+  padding: 4px 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.task-action-button.delete {
+  color: #b91c1c;
+}
+
 .task-meta small {
   color: #64748b;
 }
@@ -533,7 +579,7 @@ select {
   .app-shell {
     grid-template-columns: 1fr;
     width: min(100%, calc(100% - 20px));
-    min-height: auto;
+    min-height: 0;
     margin: 16px auto;
   }
 
@@ -577,6 +623,10 @@ select {
   .task-item {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .task-edit-form {
+    grid-template-columns: 1fr;
   }
 
   .task-meta {

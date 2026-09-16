@@ -34,11 +34,35 @@ function App() {
   })
 
   const [selectedFilter, setSelectedFilter] = useState('All')
+  const [activeNav, setActiveNav] = useState('Dashboard')
+  const [isFocusSessionActive, setIsFocusSessionActive] = useState(false)
+  const [sessionSecondsLeft, setSessionSecondsLeft] = useState(25 * 60)
+  const [reportMessage, setReportMessage] = useState('')
   const [newTask, setNewTask] = useState({ title: '', category: 'Work', priority: 'Medium' })
+  const [editingTask, setEditingTask] = useState(null)
 
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify(tasks))
   }, [tasks])
+
+  useEffect(() => {
+    if (!isFocusSessionActive) return undefined
+
+    const timer = window.setInterval(() => {
+      setSessionSecondsLeft((previous) => {
+        if (previous <= 1) {
+          window.clearInterval(timer)
+          setIsFocusSessionActive(false)
+          setReportMessage('Focus session complete. Nice work!')
+          return 0
+        }
+
+        return previous - 1
+      })
+    }, 1000)
+
+    return () => window.clearInterval(timer)
+  }, [isFocusSessionActive])
 
   const visibleTasks = useMemo(() => {
     if (selectedFilter === 'All') return tasks
@@ -83,6 +107,93 @@ function App() {
     setNewTask({ title: '', category: 'Work', priority: 'Medium' })
   }
 
+  const handleStartEditing = (task) => {
+    setEditingTask({ ...task })
+    setReportMessage('')
+  }
+
+  const handleCancelEditing = () => {
+    setEditingTask(null)
+  }
+
+  const handleSaveTask = (event) => {
+    event.preventDefault()
+    if (!editingTask?.title.trim()) {
+      setReportMessage('A task title is required.')
+      return
+    }
+
+    setTasks((previous) =>
+      previous.map((task) =>
+        task.id === editingTask.id
+          ? { ...task, title: editingTask.title.trim(), category: editingTask.category, priority: editingTask.priority }
+          : task,
+      ),
+    )
+    setEditingTask(null)
+    setReportMessage('Task updated successfully.')
+  }
+
+  const handleDeleteTask = (id) => {
+    setTasks((previous) => previous.filter((task) => task.id !== id))
+    if (editingTask?.id === id) {
+      setEditingTask(null)
+    }
+    setReportMessage('Task deleted.')
+  }
+
+  const handleNavClick = (label) => {
+    setActiveNav(label)
+    if (label === 'Reports') {
+      setSelectedFilter('Completed')
+      setReportMessage('Report refreshed for completed work.')
+    } else {
+      setReportMessage('')
+    }
+  }
+
+  const handleExportSummary = () => {
+    const summary = {
+      exportedAt: new Date().toISOString(),
+      completedTasks: stats.completed,
+      totalTasks: stats.total,
+      focusMinutes: stats.focusMinutes,
+      streak: stats.streak,
+      completionRate: stats.completionRate,
+    }
+
+    const blob = new Blob([JSON.stringify(summary, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'focusflow-summary.json'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+    setReportMessage('Summary exported successfully.')
+  }
+
+  const handleFocusSession = () => {
+    setIsFocusSessionActive((previous) => {
+      const nextValue = !previous
+      setReportMessage(nextValue ? 'Focus session started.' : 'Focus session paused.')
+      if (!nextValue) {
+        setSessionSecondsLeft(25 * 60)
+      }
+      return nextValue
+    })
+  }
+
+  const handleGoalReview = () => {
+    setActiveNav('Reports')
+    setSelectedFilter('Completed')
+    setReportMessage('Reviewing your goal progress.')
+  }
+
+  const sessionMinutes = Math.floor(sessionSecondsLeft / 60)
+  const sessionSeconds = sessionSecondsLeft % 60
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -95,10 +206,16 @@ function App() {
         </div>
 
         <nav className="nav-panel">
-          <button type="button" className="nav-item active">Dashboard</button>
-          <button type="button" className="nav-item">Planner</button>
-          <button type="button" className="nav-item">Habits</button>
-          <button type="button" className="nav-item">Reports</button>
+          {['Dashboard', 'Planner', 'Habits', 'Reports'].map((item) => (
+            <button
+              key={item}
+              type="button"
+              className={`nav-item ${activeNav === item ? 'active' : ''}`}
+              onClick={() => handleNavClick(item)}
+            >
+              {item}
+            </button>
+          ))}
         </nav>
 
         <div className="mini-card">
@@ -119,8 +236,10 @@ function App() {
           </div>
 
           <div className="topbar-actions">
-            <button type="button" className="ghost-button">Export summary</button>
-            <button type="button" className="primary-button">Start focus session</button>
+            <button type="button" className="ghost-button" onClick={handleExportSummary}>Export summary</button>
+            <button type="button" className="primary-button" onClick={handleFocusSession}>
+              {isFocusSessionActive ? 'End focus session' : 'Start focus session'}
+            </button>
           </div>
         </header>
 
@@ -132,9 +251,10 @@ function App() {
               You completed <strong>{stats.completed}</strong> of <strong>{stats.total}</strong> high-impact tasks this week and kept your focus blocks consistent.
             </p>
             <div className="hero-actions">
-              <button type="button" className="primary-button">Review goals</button>
-              <button type="button" className="ghost-button">View report</button>
+              <button type="button" className="primary-button" onClick={handleGoalReview}>Review goals</button>
+              <button type="button" className="ghost-button" onClick={() => handleNavClick('Reports')}>View report</button>
             </div>
+            {reportMessage && <p className="inline-status">{reportMessage}</p>}
           </div>
 
           <div className="hero-metric">
@@ -240,19 +360,60 @@ function App() {
             <ul className="task-list">
               {visibleTasks.map((task) => (
                 <li key={task.id} className={`task-item ${task.completed ? 'done' : ''}`}>
-                  <label className="task-main">
-                    <input
-                      type="checkbox"
-                      checked={task.completed}
-                      onChange={() => handleToggleTask(task.id)}
-                    />
-                    <span>{task.title}</span>
-                  </label>
+                  {editingTask?.id === task.id ? (
+                    <form className="task-edit-form" onSubmit={handleSaveTask}>
+                      <input
+                        type="text"
+                        value={editingTask.title}
+                        onChange={(event) => setEditingTask((previous) => ({ ...previous, title: event.target.value }))}
+                        aria-label="Edit task title"
+                        autoFocus
+                      />
+                      <select
+                        value={editingTask.category}
+                        onChange={(event) => setEditingTask((previous) => ({ ...previous, category: event.target.value }))}
+                        aria-label="Edit task category"
+                      >
+                        <option value="Work">Work</option>
+                        <option value="Product">Product</option>
+                        <option value="Research">Research</option>
+                        <option value="Wellness">Wellness</option>
+                      </select>
+                      <select
+                        value={editingTask.priority}
+                        onChange={(event) => setEditingTask((previous) => ({ ...previous, priority: event.target.value }))}
+                        aria-label="Edit task priority"
+                      >
+                        <option value="High">High</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Low">Low</option>
+                      </select>
+                      <div className="task-actions">
+                        <button type="submit" className="primary-button small-btn">Save</button>
+                        <button type="button" className="ghost-button small-btn" onClick={handleCancelEditing}>Cancel</button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <label className="task-main">
+                        <input
+                          type="checkbox"
+                          checked={task.completed}
+                          onChange={() => handleToggleTask(task.id)}
+                        />
+                        <span>{task.title}</span>
+                      </label>
 
-                  <div className="task-meta">
-                    <span className={`priority-badge ${task.priority.toLowerCase()}`}>{task.priority}</span>
-                    <small>{task.category}</small>
-                  </div>
+                      <div className="task-meta">
+                        <span className={`priority-badge ${task.priority.toLowerCase()}`}>{task.priority}</span>
+                        <small>{task.category}</small>
+                        <div className="task-actions">
+                          <button type="button" className="task-action-button" onClick={() => handleStartEditing(task)}>Edit</button>
+                          <button type="button" className="task-action-button delete" onClick={() => handleDeleteTask(task.id)}>Delete</button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
