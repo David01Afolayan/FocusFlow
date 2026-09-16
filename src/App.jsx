@@ -210,7 +210,15 @@ function App() {
   }
 
   return (
-    <div className={`app-shell ${isSidebarOpen ? '' : 'sidebar-collapsed'}`}>
+    <div className={`app-shell ${isSidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
+      {isSidebarOpen && (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          aria-label="Close navigation"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
       <aside className="sidebar">
         <div className="brand-wrap">
           <div className="brand-mark">F</div>
@@ -259,6 +267,16 @@ function App() {
       <main className="main-content">
         <header className="topbar">
           <div>
+            {!isSidebarOpen && (
+              <button
+                type="button"
+                className="menu-trigger"
+                aria-label="Open navigation"
+                onClick={() => setIsSidebarOpen(true)}
+              >
+                <span aria-hidden="true">☰</span>
+              </button>
+            )}
             <p className="eyebrow muted">Good evening</p>
             <h1>{pageTitles[activeNav]}</h1>
           </div>
