@@ -2,6 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 
 const storageKey = 'focusflow-tasks'
+const apiUserKey = 'focusflow-user-id'
+const apiUserId = localStorage.getItem(apiUserKey) || (() => {
+  const generatedId = `local-${crypto.randomUUID()}`
+  localStorage.setItem(apiUserKey, generatedId)
+  return generatedId
+})()
 
 const initialTasks = [
   { id: 1, title: 'Design landing page mockup', category: 'Product', priority: 'High', completed: true, minutes: 45 },
@@ -52,6 +58,7 @@ function App() {
   const [newTask, setNewTask] = useState({ title: '', category: 'Work', priority: 'Medium' })
   const [editingTask, setEditingTask] = useState(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [syncStatus, setSyncStatus] = useState('local')
 
   useEffect(() => {
     const handlePopState = () => {
@@ -72,6 +79,55 @@ function App() {
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify(tasks))
   }, [tasks])
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadCloudTasks = async () => {
+      try {
+        const response = await fetch('/api/tasks', {
+          headers: { 'x-focusflow-user': apiUserId },
+        })
+        if (!response.ok) return
+
+        const data = await response.json()
+        if (isMounted && Array.isArray(data.tasks) && data.tasks.length) {
+          setTasks(data.tasks.map((task) => ({
+            ...task,
+            id: Number(task.id),
+            minutes: Number(task.minutes),
+          })))
+          setSyncStatus('synced')
+        }
+      } catch {
+        if (isMounted) setSyncStatus('local')
+      }
+    }
+
+    loadCloudTasks()
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const syncTask = async (method, body, id) => {
+    try {
+      const response = await fetch(id ? `/api/tasks?id=${id}` : '/api/tasks', {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-focusflow-user': apiUserId,
+        },
+        body: body ? JSON.stringify(body) : undefined,
+      })
+      if (!response.ok) throw new Error(`Task sync failed with status ${response.status}`)
+      setSyncStatus('synced')
+      return await response.json()
+    } catch {
+      setSyncStatus('local')
+      return null
+    }
+  }
 
   useEffect(() => {
     if (!isFocusSessionActive) return undefined
@@ -114,23 +170,31 @@ function App() {
         task.id === id ? { ...task, completed: !task.completed } : task,
       ),
     )
+    const task = tasks.find((item) => item.id === id)
+    if (task) syncTask('PATCH', { id, completed: !task.completed })
   }
 
-  const handleAddTask = (event) => {
+  const handleAddTask = async (event) => {
     event.preventDefault()
     if (!newTask.title.trim()) return
 
-    setTasks((previous) => [
-      {
+    const task = {
         id: Date.now(),
         title: newTask.title.trim(),
         category: newTask.category,
         priority: newTask.priority,
         completed: false,
         minutes: 30,
-      },
-      ...previous,
-    ])
+    }
+    setTasks((previous) => [task, ...previous])
+    const data = await syncTask('POST', task)
+    if (data?.task) {
+      setTasks((previous) => previous.map((item) => (
+        item.id === task.id
+          ? { ...data.task, id: Number(data.task.id), minutes: Number(data.task.minutes) }
+          : item
+      )))
+    }
 
     setNewTask({ title: '', category: 'Work', priority: 'Medium' })
   }
@@ -158,12 +222,19 @@ function App() {
           : task,
       ),
     )
+    syncTask('PATCH', {
+      id: editingTask.id,
+      title: editingTask.title.trim(),
+      category: editingTask.category,
+      priority: editingTask.priority,
+    })
     setEditingTask(null)
     setReportMessage('Task updated successfully.')
   }
 
   const handleDeleteTask = (id) => {
     setTasks((previous) => previous.filter((task) => task.id !== id))
+    syncTask('DELETE', null, id)
     if (editingTask?.id === id) {
       setEditingTask(null)
     }
@@ -294,7 +365,7 @@ function App() {
                 <span aria-hidden="true">☰</span>
               </button>
             )}
-            <p className="eyebrow muted">Good evening</p>
+            <p className="eyebrow muted">Good evening · {syncStatus === 'synced' ? 'Cloud synced' : 'Local mode'}</p>
             <h1>{pageTitles[activeNav]}</h1>
           </div>
 
