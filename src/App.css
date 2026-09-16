@@ -81,31 +81,35 @@
 .nav-panel {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  margin: 0 -22px;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 20px;
   border: 0;
   background: transparent;
   color: #dfeaff;
   border-radius: 12px;
   text-align: left;
-  padding: 12px 14px;
+  padding: 18px 24px;
+  min-height: 72px;
   font: inherit;
+  font-size: 1.2rem;
   cursor: pointer;
   transition: 0.2s ease;
 }
 
 .nav-icon {
-  width: 20px;
-  flex: 0 0 20px;
+  width: 22px;
+  flex: 0 0 22px;
   display: inline-grid;
   place-items: center;
-  color: #bca9ff;
+  color: #b9a1ff;
   font-weight: 800;
+  font-size: 1.15rem;
 }
 
 .sidebar-collapsed .nav-item {
@@ -116,6 +120,11 @@
 .nav-item.active,
 .nav-item:hover {
   background: rgba(139, 92, 246, 0.18);
+}
+
+.nav-item.active {
+  color: #f5f3ff;
+  background: rgba(139, 92, 246, 0.24);
 }
 
 .mini-card {
