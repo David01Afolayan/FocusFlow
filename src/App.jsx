@@ -201,6 +201,12 @@ function App() {
 
   const sessionMinutes = Math.floor(sessionSecondsLeft / 60)
   const sessionSeconds = sessionSecondsLeft % 60
+  const pageTitles = {
+    Dashboard: 'Plan your best workday',
+    Planner: 'Plan your priorities',
+    Habits: 'Build better habits',
+    Reports: 'Review your progress',
+  }
 
   return (
     <div className={`app-shell ${isSidebarOpen ? '' : 'sidebar-collapsed'}`}>
@@ -254,7 +260,7 @@ function App() {
         <header className="topbar">
           <div>
             <p className="eyebrow muted">Good evening</p>
-            <h1>Plan your best workday</h1>
+            <h1>{pageTitles[activeNav]}</h1>
           </div>
 
           <div className="topbar-actions">
@@ -265,6 +271,8 @@ function App() {
           </div>
         </header>
 
+        {activeNav === 'Dashboard' && (
+          <>
         <section className="hero-panel">
           <div className="hero-copy">
             <span className="badge">Weekly overview</span>
@@ -289,7 +297,98 @@ function App() {
             </div>
           </div>
         </section>
+          </>
+        )}
 
+        {activeNav !== 'Dashboard' && (
+          <section className="section-page">
+            <div className="section-page-header">
+              <div>
+                <p className="eyebrow muted">{activeNav} workspace</p>
+                <h2>{pageTitles[activeNav]}</h2>
+              </div>
+              {reportMessage && <p className="inline-status">{reportMessage}</p>}
+            </div>
+
+            {activeNav === 'Planner' && (
+              <div className="section-page-grid">
+                <article className="panel page-card page-card-wide">
+                  <p className="eyebrow muted">Today</p>
+                  <h3>Task planner</h3>
+                  <p className="page-card-copy">Organize your priorities and keep your next actions visible.</p>
+                  <form className="task-form" onSubmit={handleAddTask}>
+                    <input
+                      type="text"
+                      value={newTask.title}
+                      onChange={(event) => setNewTask((previous) => ({ ...previous, title: event.target.value }))}
+                      placeholder="Add a planned task"
+                      aria-label="Add a planned task"
+                    />
+                    <select value={newTask.priority} onChange={(event) => setNewTask((previous) => ({ ...previous, priority: event.target.value }))} aria-label="Planned task priority">
+                      <option value="High">High</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Low">Low</option>
+                    </select>
+                    <button type="submit" className="primary-button small-btn">Add task</button>
+                  </form>
+                  <ul className="simple-task-list">
+                    {tasks.filter((task) => !task.completed).map((task) => (
+                      <li key={task.id}>
+                        <span>{task.title}</span>
+                        <span className={`priority-badge ${task.priority.toLowerCase()}`}>{task.priority}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+                <article className="panel page-card">
+                  <p className="eyebrow muted">Planning summary</p>
+                  <h3>{stats.total - stats.completed} open tasks</h3>
+                  <p className="page-card-copy">Keep your high-impact work moving with a clear next step.</p>
+                  <button type="button" className="primary-button" onClick={() => setActiveNav('Dashboard')}>View dashboard</button>
+                </article>
+              </div>
+            )}
+
+            {activeNav === 'Habits' && (
+              <div className="section-page-grid">
+                {focusGoals.map((goal) => (
+                  <article className="panel page-card" key={goal.label}>
+                    <span className="goal-dot" style={{ background: goal.color }} />
+                    <p className="eyebrow muted">{goal.label}</p>
+                    <h3>{goal.value}</h3>
+                    <button type="button" className="ghost-button" onClick={() => setReportMessage(`${goal.label} check-in recorded.`)}>Check in</button>
+                  </article>
+                ))}
+              </div>
+            )}
+
+            {activeNav === 'Reports' && (
+              <div className="section-page-grid">
+                <article className="panel page-card page-card-wide">
+                  <p className="eyebrow muted">Completion report</p>
+                  <h3>{stats.completionRate}% completion rate</h3>
+                  <div className="bar-chart compact-chart" aria-label="Weekly completion report">
+                    {weeklyProgress.map((value, index) => (
+                      <div key={index} className="bar-column">
+                        <span className="bar" style={{ height: `${value}%` }} />
+                        <small>{['M', 'T', 'W', 'T', 'F', 'S', 'S'][index]}</small>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+                <article className="panel page-card">
+                  <p className="eyebrow muted">Focus time</p>
+                  <h3>{stats.focusMinutes} minutes</h3>
+                  <p className="page-card-copy">{stats.completed} completed tasks contributed to your current total.</p>
+                  <button type="button" className="primary-button" onClick={handleExportSummary}>Export report</button>
+                </article>
+              </div>
+            )}
+          </section>
+        )}
+
+        {activeNav === 'Dashboard' && (
+          <>
         <section className="stats-grid">
           <article className="stat-card">
             <p>Tasks finished</p>
@@ -471,6 +570,8 @@ function App() {
             </div>
           </article>
         </section>
+          </>
+        )}
       </main>
     </div>
   )
