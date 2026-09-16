@@ -74,6 +74,7 @@ function App() {
   })
 
   const [selectedFilter, setSelectedFilter] = useState('All')
+  const [taskSearch, setTaskSearch] = useState('')
   const [activeNav, setActiveNav] = useState(() => routePages[window.location.pathname] || 'Dashboard')
   const [isFocusSessionActive, setIsFocusSessionActive] = useState(false)
   const [sessionSecondsLeft, setSessionSecondsLeft] = useState(25 * 60)
@@ -235,10 +236,14 @@ function App() {
   }, [isFocusSessionActive])
 
   const visibleTasks = useMemo(() => {
-    if (selectedFilter === 'All') return tasks
-    if (selectedFilter === 'Completed') return tasks.filter((task) => task.completed)
-    return tasks.filter((task) => task.priority === selectedFilter)
-  }, [selectedFilter, tasks])
+    const normalizedSearch = taskSearch.trim().toLowerCase()
+    return tasks.filter((task) => {
+      const matchesFilter = selectedFilter === 'All'
+        || (selectedFilter === 'Completed' ? task.completed : task.priority === selectedFilter)
+      const searchableText = [task.title, task.category, task.due_date].filter(Boolean).join(' ').toLowerCase()
+      return matchesFilter && (!normalizedSearch || searchableText.includes(normalizedSearch))
+    })
+  }, [selectedFilter, taskSearch, tasks])
 
   const stats = useMemo(() => {
     const completed = tasks.filter((task) => task.completed).length
@@ -753,17 +758,27 @@ function App() {
                 <h3>Today’s priorities</h3>
               </div>
 
-              <div className="filter-row">
-                {filterOptions.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    className={`filter-chip ${selectedFilter === option ? 'active' : ''}`}
-                    onClick={() => setSelectedFilter(option)}
-                  >
-                    {option}
-                  </button>
-                ))}
+              <div className="task-board-controls">
+                <input
+                  className="task-search"
+                  type="search"
+                  value={taskSearch}
+                  onChange={(event) => setTaskSearch(event.target.value)}
+                  placeholder="Search tasks"
+                  aria-label="Search tasks"
+                />
+                <div className="filter-row">
+                  {filterOptions.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className={`filter-chip ${selectedFilter === option ? 'active' : ''}`}
+                      onClick={() => setSelectedFilter(option)}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 

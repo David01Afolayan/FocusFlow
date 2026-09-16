@@ -656,6 +656,27 @@ select {
   gap: 8px;
 }
 
+.task-board-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.task-search {
+  width: min(220px, 100%);
+  padding: 10px 12px;
+  border: 1px solid #dbe3f0;
+  border-radius: 11px;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.task-search:focus {
+  outline: 2px solid rgba(139, 92, 246, 0.25);
+  border-color: #8b5cf6;
+}
+
 .filter-chip {
   padding: 8px 10px;
   background: #eef2ff;
@@ -1135,6 +1156,14 @@ select {
   .task-item {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .task-board-controls {
+    align-items: stretch;
+  }
+
+  .task-search {
+    width: 100%;
   }
 
   .task-edit-form {
