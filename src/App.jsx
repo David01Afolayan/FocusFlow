@@ -19,6 +19,9 @@ const focusGoals = [
 ]
 
 const filterOptions = ['All', 'High', 'Medium', 'Low', 'Completed']
+const formatDueDate = (dueDate) => dueDate
+  ? new Date(`${dueDate}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  : null
 const pageRoutes = {
   Dashboard: '/dashboard',
   Planner: '/planner',
@@ -55,7 +58,7 @@ function App() {
   const [isFocusSessionActive, setIsFocusSessionActive] = useState(false)
   const [sessionSecondsLeft, setSessionSecondsLeft] = useState(25 * 60)
   const [reportMessage, setReportMessage] = useState('')
-  const [newTask, setNewTask] = useState({ title: '', category: 'Work', priority: 'Medium' })
+  const [newTask, setNewTask] = useState({ title: '', category: 'Work', priority: 'Medium', dueDate: '' })
   const [editingTask, setEditingTask] = useState(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [syncStatus, setSyncStatus] = useState('local')
@@ -244,6 +247,7 @@ function App() {
         priority: newTask.priority,
         completed: false,
         minutes: 30,
+        dueDate: newTask.dueDate || null,
     }
     setTasks((previous) => [task, ...previous])
     const data = await syncTask('POST', task)
@@ -255,7 +259,7 @@ function App() {
       )))
     }
 
-    setNewTask({ title: '', category: 'Work', priority: 'Medium' })
+    setNewTask({ title: '', category: 'Work', priority: 'Medium', dueDate: '' })
   }
 
   const handleStartEditing = (task) => {
@@ -277,7 +281,13 @@ function App() {
     setTasks((previous) =>
       previous.map((task) =>
         task.id === editingTask.id
-          ? { ...task, title: editingTask.title.trim(), category: editingTask.category, priority: editingTask.priority }
+          ? {
+            ...task,
+            title: editingTask.title.trim(),
+            category: editingTask.category,
+            priority: editingTask.priority,
+            dueDate: editingTask.dueDate || null,
+          }
           : task,
       ),
     )
@@ -286,6 +296,7 @@ function App() {
       title: editingTask.title.trim(),
       category: editingTask.category,
       priority: editingTask.priority,
+      dueDate: editingTask.dueDate || null,
     })
     setEditingTask(null)
     setReportMessage('Task updated successfully.')
@@ -552,12 +563,21 @@ function App() {
                       <option value="Medium">Medium</option>
                       <option value="Low">Low</option>
                     </select>
+                    <input
+                      type="date"
+                      value={newTask.dueDate}
+                      onChange={(event) => setNewTask((previous) => ({ ...previous, dueDate: event.target.value }))}
+                      aria-label="Planned task due date"
+                    />
                     <button type="submit" className="primary-button small-btn">Add task</button>
                   </form>
                   <ul className="simple-task-list">
                     {tasks.filter((task) => !task.completed).map((task) => (
                       <li key={task.id}>
-                        <span>{task.title}</span>
+                        <span>
+                          {task.title}
+                          {task.due_date && <small className="task-due-date">Due {formatDueDate(task.due_date)}</small>}
+                        </span>
                         <span className={`priority-badge ${task.priority.toLowerCase()}`}>{task.priority}</span>
                       </li>
                     ))}
@@ -698,7 +718,14 @@ function App() {
                 <option value="Low">Low</option>
               </select>
 
-              <button type="submit" className="primary-button small-btn">Add</button>
+              <input
+                type="date"
+                value={newTask.dueDate}
+                onChange={(event) => setNewTask((previous) => ({ ...previous, dueDate: event.target.value }))}
+                aria-label="Task due date"
+              />
+
+              <button  type="submit" className="primary-button small-btn">Add</button>
             </form>
 
             <ul className="task-list">
@@ -732,6 +759,12 @@ function App() {
                         <option value="Medium">Medium</option>
                         <option value="Low">Low</option>
                       </select>
+                      <input
+                        type="date"
+                        value={editingTask.dueDate || ''}
+                        onChange={(event) => setEditingTask((previous) => ({ ...previous, dueDate: event.target.value }))}
+                        aria-label="Edit task due date"
+                      />
                       <div className="task-actions">
                         <button type="submit" className="primary-button small-btn">Save</button>
                         <button type="button" className="ghost-button small-btn" onClick={handleCancelEditing}>Cancel</button>
@@ -751,6 +784,7 @@ function App() {
                       <div className="task-meta">
                         <span className={`priority-badge ${task.priority.toLowerCase()}`}>{task.priority}</span>
                         <small>{task.category}</small>
+                        {task.due_date && <small className="task-due-date">Due {formatDueDate(task.due_date)}</small>}
                         <div className="task-actions">
                           <button type="button" className="task-action-button" onClick={() => handleStartEditing(task)}>Edit</button>
                           <button type="button" className="task-action-button delete" onClick={() => handleDeleteTask(task.id)}>Delete</button>

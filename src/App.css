@@ -599,7 +599,7 @@ select {
 
 .task-form {
   display: grid;
-  grid-template-columns: 1.3fr 0.8fr 0.8fr auto;
+  grid-template-columns: minmax(180px, 1.3fr) 0.8fr 0.8fr 0.9fr auto;
   gap: 10px;
   margin-bottom: 18px;
 }
@@ -663,16 +663,24 @@ select {
 
 .task-edit-form {
   display: grid;
-  grid-template-columns: minmax(180px, 1.4fr) minmax(110px, 0.8fr) minmax(110px, 0.8fr) auto;
+  grid-template-columns: minmax(180px, 1.4fr) minmax(110px, 0.8fr) minmax(110px, 0.8fr) minmax(120px, 0.9fr) auto;
   align-items: center;
   gap: 10px;
   width: 100%;
 }
 
 .task-edit-form input,
-.task-edit-form select {
+.task-edit-form select,
+.task-form input[type='date'] {
   width: 100%;
   min-width: 0;
+}
+
+.task-due-date {
+  display: block;
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 0.75rem;
   padding: 9px 10px;
   border: 1px solid rgba(148, 163, 184, 0.5);
   border-radius: 10px;
