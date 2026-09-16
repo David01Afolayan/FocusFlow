@@ -38,6 +38,12 @@ const routePages = Object.entries(pageRoutes).reduce((pages, [label, route]) => 
 }, {})
 
 function App() {
+  const [authState, setAuthState] = useState('checking')
+  const [user, setUser] = useState(null)
+  const [authMode, setAuthMode] = useState('login')
+  const [authForm, setAuthForm] = useState({ email: '', password: '' })
+  const [authError, setAuthError] = useState('')
+  const [authLoading, setAuthLoading] = useState(false)
   const [tasks, setTasks] = useState(() => {
     const saved = localStorage.getItem(storageKey)
     if (!saved) return initialTasks
@@ -59,6 +65,29 @@ function App() {
   const [editingTask, setEditingTask] = useState(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [syncStatus, setSyncStatus] = useState('local')
+
+  useEffect(() => {
+    let isMounted = true
+    fetch('/api/auth')
+      .then(async (response) => {
+        if (response.ok) {
+          const data = await response.json()
+          if (isMounted) {
+            setUser(data.user)
+            setAuthState('authenticated')
+          }
+        } else if (isMounted) {
+          setAuthState('unauthenticated')
+        }
+      })
+      .catch(() => {
+        if (isMounted) setAuthState('unauthenticated')
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   useEffect(() => {
     const handlePopState = () => {
@@ -127,6 +156,40 @@ function App() {
       setSyncStatus('local')
       return null
     }
+
+  }
+
+  const handleAuthSubmit = async (event) => {
+    event.preventDefault()
+    setAuthError('')
+    setAuthLoading(true)
+
+    try {
+      const response = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: authMode,
+          email: authForm.email,
+          password: authForm.password,
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Unable to authenticate.')
+      setUser(data.user)
+      setAuthState('authenticated')
+      setAuthForm({ email: '', password: '' })
+    } catch (error) {
+      setAuthError(error.message)
+    } finally {
+      setAuthLoading(false)
+    }
+  }
+
+  const handleLogout = async () => {
+    await fetch('/api/auth', { method: 'DELETE' })
+    setUser(null)
+    setAuthState('unauthenticated')
   }
 
   useEffect(() => {
@@ -308,6 +371,62 @@ function App() {
     Reports: 'Review your progress',
   }
 
+  if (authState === 'checking') {
+    return <div className="auth-loading">Loading FocusFlow...</div>
+  }
+
+  if (authState === 'unauthenticated') {
+    return (
+      <main className="auth-page">
+        <section className="auth-card">
+          <div className="auth-brand">
+            <div className="brand-mark">F</div>
+            <div>
+              <p className="eyebrow muted">Productivity workspace</p>
+              <h1>FocusFlow</h1>
+            </div>
+          </div>
+          <p className="eyebrow muted">{authMode === 'login' ? 'Welcome back' : 'Create your workspace'}</p>
+          <h2>{authMode === 'login' ? 'Keep your momentum.' : 'Start your focus journey.'}</h2>
+          <p className="auth-copy">Your tasks, habits, and focus insights in one calm workspace.</p>
+          <form className="auth-form" onSubmit={handleAuthSubmit}>
+            <label>
+              Email
+              <input
+                type="email"
+                value={authForm.email}
+                onChange={(event) => setAuthForm((previous) => ({ ...previous, email: event.target.value }))}
+                placeholder="you@example.com"
+                required
+              />
+            </label>
+            <label>
+              Password
+              <input
+                type="password"
+                value={authForm.password}
+                onChange={(event) => setAuthForm((previous) => ({ ...previous, password: event.target.value }))}
+                placeholder="At least 8 characters"
+                minLength="8"
+                required
+              />
+            </label>
+            {authError && <p className="auth-error">{authError}</p>}
+            <button type="submit" className="primary-button auth-submit" disabled={authLoading}>
+              {authLoading ? 'Please wait...' : authMode === 'login' ? 'Sign in' : 'Create account'}
+            </button>
+          </form>
+          <button type="button" className="auth-switch" onClick={() => {
+            setAuthMode((previous) => previous === 'login' ? 'register' : 'login')
+            setAuthError('')
+          }}>
+            {authMode === 'login' ? 'Need an account? Create one' : 'Already have an account? Sign in'}
+          </button>
+        </section>
+      </main>
+    )
+  }
+
   return (
     <div className={`app-shell ${isSidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
       {isSidebarOpen && (
@@ -370,10 +489,12 @@ function App() {
           </div>
 
           <div className="topbar-actions">
+            {user && <span className="user-pill">{user.email}</span>}
             <button type="button" className="ghost-button" onClick={handleExportSummary}>Export summary</button>
             <button type="button" className="primary-button" onClick={handleFocusSession}>
               {isFocusSessionActive ? 'End focus session' : 'Start focus session'}
             </button>
+            {user && <button type="button" className="ghost-button" onClick={handleLogout}>Log out</button>}
           </div>
         </header>
 
