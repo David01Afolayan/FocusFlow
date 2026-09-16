@@ -144,6 +144,7 @@ function App() {
   }
 
   const handleNavClick = (label) => {
+    setIsSidebarOpen(true)
     setActiveNav(label)
     if (label === 'Dashboard') {
       setSelectedFilter('All')
