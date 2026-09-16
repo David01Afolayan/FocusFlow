@@ -213,6 +213,22 @@ function App() {
           </div>
         </div>
 
+        <nav className="nav-panel">
+          {['Dashboard', 'Planner', 'Habits', 'Reports'].map((item) => (
+            <button
+              key={item}
+              type="button"
+              aria-label={item}
+              title={isSidebarOpen ? undefined : item}
+              className={`nav-item ${activeNav === item ? 'active' : ''}`}
+              onClick={() => handleNavClick(item)}
+            >
+              <span className="nav-icon" aria-hidden="true">{item.slice(0, 1)}</span>
+              <span className="nav-label">{item}</span>
+            </button>
+          ))}
+        </nav>
+
         <div className="mini-card">
           <p>Current streak</p>
           <h3>{stats.streak} days</h3>
