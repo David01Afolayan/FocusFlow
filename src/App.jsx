@@ -28,6 +28,15 @@ const initialHabits = focusGoals.map((goal, index) => ({
 }))
 
 const filterOptions = ['All', 'High', 'Medium', 'Low', 'Completed']
+const normalizeTask = (task) => {
+  const dueDate = task?.dueDate ?? task?.due_date ?? null
+  return {
+    ...task,
+    dueDate,
+    due_date: dueDate,
+    minutes: Number(task?.minutes ?? 30),
+  }
+}
 const formatDueDate = (dueDate) => dueDate
   ? new Date(`${dueDate}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
   : null
@@ -139,11 +148,15 @@ function App() {
     const loadCloudTasks = async () => {
       try {
         const response = await fetch('/api/tasks', { credentials: 'include' })
-        if (!response.ok) return
+          if (response.status === 401) {
+            setAuthState('unauthenticated')
+            return
+          }
+          if (!response.ok) return
 
         const data = await response.json()
         if (isMounted && Array.isArray(data.tasks)) {
-          setTasks(data.tasks.map((task) => ({
+          setTasks(data.tasks.map((task) => normalizeTask({
             ...task,
             id: Number(task.id),
             minutes: Number(task.minutes),
@@ -167,6 +180,10 @@ function App() {
 
     fetch('/api/habits', { credentials: 'include' })
       .then(async (response) => {
+        if (response.status === 401) {
+          setAuthState('unauthenticated')
+          return
+        }
         if (!response.ok) return
         const data = await response.json()
         if (isMounted && Array.isArray(data.habits) && data.habits.length) {
@@ -250,7 +267,11 @@ function App() {
   }
 
   const handleLogout = async () => {
-    await fetch('/api/auth', { method: 'DELETE' })
+    try {
+      await fetch('/api/auth', { method: 'DELETE', credentials: 'include' })
+    } catch {
+      // Clear local auth state even if the network request fails.
+    }
     setUser(null)
     setAuthState('unauthenticated')
   }
@@ -277,9 +298,13 @@ function App() {
   const visibleTasks = useMemo(() => {
     const normalizedSearch = taskSearch.trim().toLowerCase()
     return tasks.filter((task) => {
+      const normalizedTask = normalizeTask(task)
       const matchesFilter = selectedFilter === 'All'
-        || (selectedFilter === 'Completed' ? task.completed : task.priority === selectedFilter)
-      const searchableText = [task.title, task.category, task.due_date].filter(Boolean).join(' ').toLowerCase()
+        || (selectedFilter === 'Completed' ? normalizedTask.completed : normalizedTask.priority === selectedFilter)
+      const searchableText = [normalizedTask.title, normalizedTask.category, normalizedTask.dueDate, normalizedTask.due_date]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
       return matchesFilter && (!normalizedSearch || searchableText.includes(normalizedSearch))
     })
   }, [selectedFilter, taskSearch, tasks])
@@ -309,20 +334,20 @@ function App() {
     if (!newTask.title.trim()) return
 
     const task = {
-        id: Date.now(),
-        title: newTask.title.trim(),
-        category: newTask.category,
-        priority: newTask.priority,
-        completed: false,
-        minutes: 30,
-        dueDate: newTask.dueDate || null,
+      id: Date.now(),
+      title: newTask.title.trim(),
+      category: newTask.category,
+      priority: newTask.priority,
+      completed: false,
+      minutes: 30,
+      dueDate: newTask.dueDate || null,
     }
-    setTasks((previous) => [task, ...previous])
-    const data = await syncTask('POST', task)
+    setTasks((previous) => [normalizeTask(task), ...previous])
+    const data = await syncTask('POST', normalizeTask(task))
     if (data?.task) {
       setTasks((previous) => previous.map((item) => (
         item.id === task.id
-          ? { ...data.task, id: Number(data.task.id), minutes: Number(data.task.minutes) }
+          ? normalizeTask({ ...data.task, id: Number(data.task.id), minutes: Number(data.task.minutes) })
           : item
       )))
     }
@@ -349,23 +374,23 @@ function App() {
     setTasks((previous) =>
       previous.map((task) =>
         task.id === editingTask.id
-          ? {
+          ? normalizeTask({
             ...task,
             title: editingTask.title.trim(),
             category: editingTask.category,
             priority: editingTask.priority,
             dueDate: editingTask.dueDate || null,
-          }
+          })
           : task,
       ),
     )
-    syncTask('PATCH', {
+    syncTask('PATCH', normalizeTask({
       id: editingTask.id,
       title: editingTask.title.trim(),
       category: editingTask.category,
       priority: editingTask.priority,
       dueDate: editingTask.dueDate || null,
-    })
+    }))
     setEditingTask(null)
     setReportMessage('Task updated successfully.')
   }
@@ -435,10 +460,8 @@ function App() {
       setSelectedFilter('All')
       setReportMessage('Planner selected. Add and organize your priorities below.')
     } else if (label === 'Habits') {
-      setSelectedFilter('Completed')
       setReportMessage('Habits selected. Showing completed activities.')
     } else if (label === 'Reports') {
-      setSelectedFilter('Completed')
       setReportMessage('Report refreshed for completed work.')
     }
   }
@@ -469,6 +492,9 @@ function App() {
     setIsFocusSessionActive((previous) => {
       const nextValue = !previous
       setReportMessage(nextValue ? 'Focus session started.' : 'Focus session paused.')
+      if (nextValue && sessionSecondsLeft === 0) {
+        setSessionSecondsLeft(25 * 60)
+      }
       if (!nextValue) {
         setSessionSecondsLeft(25 * 60)
       }
@@ -478,7 +504,6 @@ function App() {
 
   const handleGoalReview = () => {
     handleNavClick('Reports')
-    setSelectedFilter('Completed')
     setReportMessage('Reviewing your goal progress.')
   }
 
@@ -695,7 +720,9 @@ function App() {
                       <li key={task.id}>
                         <span>
                           {task.title}
-                          {task.due_date && <small className="task-due-date">Due {formatDueDate(task.due_date)}</small>}
+                          {(task.dueDate || task.due_date) && (
+                            <small className="task-due-date">Due {formatDueDate(task.dueDate || task.due_date)}</small>
+                          )}
                         </span>
                         <span className={`priority-badge ${task.priority.toLowerCase()}`}>{task.priority}</span>
                       </li>
@@ -930,7 +957,9 @@ function App() {
                       <div className="task-meta">
                         <span className={`priority-badge ${task.priority.toLowerCase()}`}>{task.priority}</span>
                         <small>{task.category}</small>
-                        {task.due_date && <small className="task-due-date">Due {formatDueDate(task.due_date)}</small>}
+                        {(task.dueDate || task.due_date) && (
+                          <small className="task-due-date">Due {formatDueDate(task.dueDate || task.due_date)}</small>
+                        )}
                         <div className="task-actions">
                           <button type="button" className="task-action-button" onClick={() => handleStartEditing(task)}>Edit</button>
                           <button type="button" className="task-action-button delete" onClick={() => handleDeleteTask(task.id)}>Delete</button>

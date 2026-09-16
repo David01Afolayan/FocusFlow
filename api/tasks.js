@@ -2,11 +2,6 @@ import { sql } from '@vercel/postgres'
 
 const allowedPriorities = new Set(['High', 'Medium', 'Low'])
 
-function getUserId(request) {
-  const userId = request.headers['x-focusflow-user']
-  return typeof userId === 'string' && userId.trim() ? userId.trim() : null
-}
-
 async function getAuthenticatedUserId(request) {
   const token = (request.headers.cookie || '').split(';').map((part) => part.trim())
     .find((part) => part.startsWith('focusflow_session='))
@@ -18,7 +13,7 @@ async function getAuthenticatedUserId(request) {
     `
     if (result.rows[0]) return result.rows[0].user_id
   }
-  return getUserId(request)
+  return null
 }
 
 function sendJson(response, status, body) {
@@ -26,12 +21,12 @@ function sendJson(response, status, body) {
 }
 
 export default async function handler(request, response) {
-  const userId = await getAuthenticatedUserId(request)
-  if (!userId) {
-    return sendJson(response, 401, { error: 'Authentication required.' })
-  }
-
   try {
+    const userId = await getAuthenticatedUserId(request)
+    if (!userId) {
+      return sendJson(response, 401, { error: 'Authentication required.' })
+    }
+
     if (request.method === 'GET') {
       const result = await sql`
         SELECT id, title, category, priority, completed, minutes, due_date, created_at, updated_at
@@ -43,7 +38,8 @@ export default async function handler(request, response) {
     }
 
     if (request.method === 'POST') {
-      const { title, category = 'Work', priority = 'Medium', minutes = 30, dueDate = null } = request.body || {}
+      const { title, category = 'Work', priority = 'Medium', minutes = 30, dueDate, due_date: dueDateFromSnakeCase } = request.body || {}
+      const normalizedDueDate = dueDate ?? dueDateFromSnakeCase ?? null
       if (typeof title !== 'string' || !title.trim()) {
         return sendJson(response, 400, { error: 'A non-empty title is required.' })
       }
@@ -53,14 +49,15 @@ export default async function handler(request, response) {
 
       const result = await sql`
         INSERT INTO tasks (user_id, title, category, priority, minutes, due_date)
-        VALUES (${userId}, ${title.trim()}, ${category}, ${priority}, ${minutes}, ${dueDate})
+        VALUES (${userId}, ${title.trim()}, ${category}, ${priority}, ${minutes}, ${normalizedDueDate})
         RETURNING id, title, category, priority, completed, minutes, due_date, created_at, updated_at
       `
       return sendJson(response, 201, { task: result.rows[0] })
     }
 
     if (request.method === 'PATCH') {
-      const { id, title, category, priority, completed, minutes, dueDate } = request.body || {}
+      const { id, title, category, priority, completed, minutes, dueDate, due_date: dueDateFromSnakeCase } = request.body || {}
+      const normalizedDueDate = dueDate ?? dueDateFromSnakeCase ?? undefined
       if (!Number.isInteger(Number(id))) {
         return sendJson(response, 400, { error: 'A numeric task id is required.' })
       }
@@ -85,7 +82,7 @@ export default async function handler(request, response) {
           priority = COALESCE(${priority ?? null}, priority),
           completed = COALESCE(${completed ?? null}, completed),
           minutes = COALESCE(${minutes ?? null}, minutes),
-          due_date = COALESCE(${dueDate ?? null}, due_date),
+          due_date = CASE WHEN ${normalizedDueDate === undefined} THEN due_date ELSE ${normalizedDueDate ?? null} END,
           updated_at = NOW()
         WHERE id = ${Number(id)} AND user_id = ${userId}
         RETURNING id, title, category, priority, completed, minutes, due_date, created_at, updated_at

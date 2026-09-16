@@ -2,11 +2,6 @@ import { sql } from '@vercel/postgres'
 
 const allowedFrequencies = new Set(['daily', 'weekly', 'monthly'])
 
-function getUserId(request) {
-  const userId = request.headers['x-focusflow-user']
-  return typeof userId === 'string' && userId.trim() ? userId.trim() : null
-}
-
 async function getAuthenticatedUserId(request) {
   const token = (request.headers.cookie || '').split(';').map((part) => part.trim())
     .find((part) => part.startsWith('focusflow_session='))
@@ -18,7 +13,7 @@ async function getAuthenticatedUserId(request) {
     `
     if (result.rows[0]) return result.rows[0].user_id
   }
-  return getUserId(request)
+  return null
 }
 
 function sendJson(response, status, body) {
@@ -26,10 +21,10 @@ function sendJson(response, status, body) {
 }
 
 export default async function handler(request, response) {
-  const userId = await getAuthenticatedUserId(request)
-  if (!userId) return sendJson(response, 401, { error: 'Authentication required.' })
-
   try {
+    const userId = await getAuthenticatedUserId(request)
+    if (!userId) return sendJson(response, 401, { error: 'Authentication required.' })
+
     if (request.method === 'GET') {
       const result = await sql`
         SELECT id, name, frequency, target, streak, completed_today, created_at, updated_at

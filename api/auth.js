@@ -8,10 +8,18 @@ function sendJson(response, status, body) {
   response.status(status).json(body)
 }
 
-function setSessionCookie(response, token) {
+function isSecureRequest(request) {
+  const forwardedProto = request.headers['x-forwarded-proto']
+  if (typeof forwardedProto === 'string') return forwardedProto.split(',')[0].trim() === 'https'
+  const origin = request.headers.origin
+  return typeof origin === 'string' && origin.startsWith('https://')
+}
+
+function setSessionCookie(response, token, request) {
+  const secureFlag = isSecureRequest(request) ? '; Secure' : ''
   response.setHeader(
     'Set-Cookie',
-    `focusflow_session=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${sessionDurationMs / 1000}`,
+    `focusflow_session=${token}; Path=/; HttpOnly; SameSite=Lax${secureFlag}; Max-Age=${sessionDurationMs / 1000}`,
   )
 }
 
@@ -40,7 +48,8 @@ export default async function handler(request, response) {
     if (request.method === 'DELETE') {
       const token = getCookie(request, 'focusflow_session')
       if (token) await sql`DELETE FROM sessions WHERE token = ${token}`
-      response.setHeader('Set-Cookie', 'focusflow_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0')
+      const secureFlag = isSecureRequest(request) ? '; Secure' : ''
+      response.setHeader(`Set-Cookie`, `focusflow_session=; Path=/; HttpOnly; SameSite=Lax${secureFlag}; Max-Age=0`)
       return sendJson(response, 200, { ok: true })
     }
 
@@ -66,7 +75,7 @@ export default async function handler(request, response) {
       if (!created.rows[0]) return sendJson(response, 409, { error: 'An account with this email already exists.' })
       const token = randomBytes(32).toString('hex')
       await sql`INSERT INTO sessions (token, user_id, expires_at) VALUES (${token}, ${created.rows[0].id}, NOW() + INTERVAL '30 days')`
-      setSessionCookie(response, token)
+      setSessionCookie(response, token, request)
       return sendJson(response, 201, { user: created.rows[0] })
     }
 
@@ -76,7 +85,7 @@ export default async function handler(request, response) {
     }
     const token = randomBytes(32).toString('hex')
     await sql`INSERT INTO sessions (token, user_id, expires_at) VALUES (${token}, ${users.rows[0].id}, NOW() + INTERVAL '30 days')`
-    setSessionCookie(response, token)
+    setSessionCookie(response, token, request)
     return sendJson(response, 200, { user: { id: users.rows[0].id, email: users.rows[0].email } })
   } catch (error) {
     console.error('Auth API error:', error)
