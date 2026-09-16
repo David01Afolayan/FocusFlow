@@ -28,7 +28,7 @@ function sendJson(response, status, body) {
 export default async function handler(request, response) {
   const userId = await getAuthenticatedUserId(request)
   if (!userId) {
-    return sendJson(response, 401, { error: 'Missing x-focusflow-user header.' })
+    return sendJson(response, 401, { error: 'Authentication required.' })
   }
 
   try {

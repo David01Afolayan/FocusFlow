@@ -2,12 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 
 const storageKey = 'focusflow-tasks'
-const apiUserKey = 'focusflow-user-id'
-const apiUserId = localStorage.getItem(apiUserKey) || (() => {
-  const generatedId = `local-${crypto.randomUUID()}`
-  localStorage.setItem(apiUserKey, generatedId)
-  return generatedId
-})()
 
 const initialTasks = [
   { id: 1, title: 'Design landing page mockup', category: 'Product', priority: 'High', completed: true, minutes: 45 },
@@ -110,17 +104,17 @@ function App() {
   }, [tasks])
 
   useEffect(() => {
+    if (authState !== 'authenticated') return undefined
+
     let isMounted = true
 
     const loadCloudTasks = async () => {
       try {
-        const response = await fetch('/api/tasks', {
-          headers: { 'x-focusflow-user': apiUserId },
-        })
+        const response = await fetch('/api/tasks', { credentials: 'include' })
         if (!response.ok) return
 
         const data = await response.json()
-        if (isMounted && Array.isArray(data.tasks) && data.tasks.length) {
+        if (isMounted && Array.isArray(data.tasks)) {
           setTasks(data.tasks.map((task) => ({
             ...task,
             id: Number(task.id),
@@ -137,16 +131,18 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [authState, user?.id])
 
   const syncTask = async (method, body, id) => {
+    if (authState !== 'authenticated') return null
+
     try {
       const response = await fetch(id ? `/api/tasks?id=${id}` : '/api/tasks', {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'x-focusflow-user': apiUserId,
         },
+        credentials: 'include',
         body: body ? JSON.stringify(body) : undefined,
       })
       if (!response.ok) throw new Error(`Task sync failed with status ${response.status}`)
