@@ -7,12 +7,26 @@ function getUserId(request) {
   return typeof userId === 'string' && userId.trim() ? userId.trim() : null
 }
 
+async function getAuthenticatedUserId(request) {
+  const token = (request.headers.cookie || '').split(';').map((part) => part.trim())
+    .find((part) => part.startsWith('focusflow_session='))
+  if (token) {
+    const sessionToken = decodeURIComponent(token.slice('focusflow_session='.length))
+    const result = await sql`
+      SELECT user_id FROM sessions
+      WHERE token = ${sessionToken} AND expires_at > NOW()
+    `
+    if (result.rows[0]) return result.rows[0].user_id
+  }
+  return getUserId(request)
+}
+
 function sendJson(response, status, body) {
   response.status(status).json(body)
 }
 
 export default async function handler(request, response) {
-  const userId = getUserId(request)
+  const userId = await getAuthenticatedUserId(request)
   if (!userId) {
     return sendJson(response, 401, { error: 'Missing x-focusflow-user header.' })
   }
