@@ -81,7 +81,7 @@
 .nav-panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
   margin: 0 -22px;
 }
 
@@ -92,12 +92,12 @@
   border: 0;
   background: transparent;
   color: #dfeaff;
-  border-radius: 12px;
+  border-radius: 0;
   text-align: left;
-  padding: 18px 24px;
-  min-height: 72px;
+  padding: 22px 30px;
+  min-height: 108px;
   font: inherit;
-  font-size: 1.2rem;
+  font-size: 1.35rem;
   cursor: pointer;
   transition: 0.2s ease;
 }
@@ -109,7 +109,7 @@
   place-items: center;
   color: #b9a1ff;
   font-weight: 800;
-  font-size: 1.15rem;
+  font-size: 1.25rem;
 }
 
 .sidebar-collapsed .nav-item {
