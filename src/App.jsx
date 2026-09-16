@@ -237,7 +237,6 @@ function App() {
               key={item}
               type="button"
               aria-label={item}
-              title={isSidebarOpen ? undefined : item}
               className={`nav-item ${activeNav === item ? 'active' : ''}`}
               onClick={() => handleNavClick(item)}
             >
