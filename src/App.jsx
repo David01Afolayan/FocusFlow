@@ -379,7 +379,7 @@ function App() {
                   <p className="eyebrow muted">Planning summary</p>
                   <h3>{stats.total - stats.completed} open tasks</h3>
                   <p className="page-card-copy">Keep your high-impact work moving with a clear next step.</p>
-                  <button type="button" className="primary-button" onClick={() => setActiveNav('Dashboard')}>View dashboard</button>
+                  <button type="button" className="primary-button" onClick={() => handleNavClick('Dashboard')}>View dashboard</button>
                 </article>
               </div>
             )}
