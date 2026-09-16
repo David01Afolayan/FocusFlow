@@ -427,6 +427,7 @@ function App() {
 
   const sessionMinutes = Math.floor(sessionSecondsLeft / 60)
   const sessionSeconds = sessionSecondsLeft % 60
+  const formattedSessionTime = `${String(sessionMinutes).padStart(2, '0')}:${String(sessionSeconds).padStart(2, '0')}`
   const pageTitles = {
     Dashboard: 'Plan your best workday',
     Planner: 'Plan your priorities',
@@ -573,6 +574,11 @@ function App() {
             <div className="hero-actions">
               <button type="button" className="primary-button" onClick={handleGoalReview}>Review goals</button>
               <button type="button" className="ghost-button" onClick={() => handleNavClick('Reports')}>View report</button>
+            </div>
+            <div className={`focus-session-status ${isFocusSessionActive ? 'active' : ''}`} aria-live="polite">
+              <span className="focus-session-dot" aria-hidden="true" />
+              <span>{isFocusSessionActive ? 'Focus session in progress' : 'Ready for a focused block'}</span>
+              <strong>{formattedSessionTime}</strong>
             </div>
             {reportMessage && <p className="inline-status">{reportMessage}</p>}
           </div>
