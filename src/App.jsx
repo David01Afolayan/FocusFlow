@@ -40,6 +40,7 @@ function App() {
   const [reportMessage, setReportMessage] = useState('')
   const [newTask, setNewTask] = useState({ title: '', category: 'Work', priority: 'Medium' })
   const [editingTask, setEditingTask] = useState(null)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify(tasks))
@@ -144,11 +145,18 @@ function App() {
 
   const handleNavClick = (label) => {
     setActiveNav(label)
-    if (label === 'Reports') {
+    if (label === 'Dashboard') {
+      setSelectedFilter('All')
+      setReportMessage('Dashboard refreshed.')
+    } else if (label === 'Planner') {
+      setSelectedFilter('All')
+      setReportMessage('Planner selected. Add and organize your priorities below.')
+    } else if (label === 'Habits') {
+      setSelectedFilter('Completed')
+      setReportMessage('Habits selected. Showing completed activities.')
+    } else if (label === 'Reports') {
       setSelectedFilter('Completed')
       setReportMessage('Report refreshed for completed work.')
-    } else {
-      setReportMessage('')
     }
   }
 
@@ -195,11 +203,11 @@ function App() {
   const sessionSeconds = sessionSecondsLeft % 60
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${isSidebarOpen ? '' : 'sidebar-collapsed'}`}>
       <aside className="sidebar">
         <div className="brand-wrap">
           <div className="brand-mark">F</div>
-          <div>
+          <div className="brand-copy">
             <p className="eyebrow">Productivity</p>
             <h2>FocusFlow</h2>
           </div>
@@ -210,10 +218,13 @@ function App() {
             <button
               key={item}
               type="button"
+              aria-label={item}
+              title={isSidebarOpen ? undefined : item}
               className={`nav-item ${activeNav === item ? 'active' : ''}`}
               onClick={() => handleNavClick(item)}
             >
-              {item}
+              <span className="nav-icon" aria-hidden="true">{item.slice(0, 1)}</span>
+              <span className="nav-label">{item}</span>
             </button>
           ))}
         </nav>
@@ -231,6 +242,16 @@ function App() {
       <main className="main-content">
         <header className="topbar">
           <div>
+            <button
+              type="button"
+              className="sidebar-toggle"
+              aria-label={isSidebarOpen ? 'Collapse navigation' : 'Expand navigation'}
+              aria-expanded={isSidebarOpen}
+              onClick={() => setIsSidebarOpen((previous) => !previous)}
+            >
+              <span aria-hidden="true">{isSidebarOpen ? '←' : '→'}</span>
+              <span>{isSidebarOpen ? 'Collapse menu' : 'Open menu'}</span>
+            </button>
             <p className="eyebrow muted">Good evening</p>
             <h1>Plan your best workday</h1>
           </div>

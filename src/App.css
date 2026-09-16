@@ -9,6 +9,11 @@
   background: rgba(15, 23, 42, 0.04);
   border: 1px solid rgba(148, 163, 184, 0.2);
   box-shadow: 0 30px 80px rgba(15, 23, 42, 0.12);
+  transition: grid-template-columns 0.3s ease;
+}
+
+.app-shell.sidebar-collapsed {
+  grid-template-columns: 84px minmax(0, 1fr);
 }
 
 .sidebar {
@@ -24,6 +29,22 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  min-height: 42px;
+  overflow: hidden;
+}
+
+.brand-copy,
+.nav-label,
+.mini-card {
+  transition: opacity 0.2s ease, transform 0.3s ease;
+}
+
+.sidebar-collapsed .brand-copy,
+.sidebar-collapsed .nav-label,
+.sidebar-collapsed .mini-card {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-12px);
 }
 
 .brand-mark {
@@ -64,6 +85,9 @@
 }
 
 .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   border: 0;
   background: transparent;
   color: #dfeaff;
@@ -73,6 +97,20 @@
   font: inherit;
   cursor: pointer;
   transition: 0.2s ease;
+}
+
+.nav-icon {
+  width: 20px;
+  flex: 0 0 20px;
+  display: inline-grid;
+  place-items: center;
+  color: #bca9ff;
+  font-weight: 800;
+}
+
+.sidebar-collapsed .nav-item {
+  justify-content: center;
+  padding-inline: 12px;
 }
 
 .nav-item.active,
@@ -126,6 +164,28 @@
   align-items: center;
   gap: 20px;
   margin-bottom: 22px;
+}
+
+.sidebar-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  padding: 0;
+  margin-bottom: 12px;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sidebar-toggle:hover {
+  color: #4c1d95;
+}
+
+.sidebar-toggle span:first-child {
+  font-size: 1.1rem;
 }
 
 .topbar h1 {
@@ -583,8 +643,25 @@ select {
     margin: 16px auto;
   }
 
+  .app-shell.sidebar-collapsed {
+    grid-template-columns: 1fr;
+  }
+
   .sidebar {
     padding-bottom: 18px;
+  }
+
+  .sidebar-collapsed .brand-copy,
+  .sidebar-collapsed .nav-label,
+  .sidebar-collapsed .mini-card {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  .sidebar-collapsed .nav-item {
+    justify-content: flex-start;
+    padding-inline: 14px;
   }
 
   .stats-grid,
