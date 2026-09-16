@@ -40,7 +40,7 @@ function App() {
   const [reportMessage, setReportMessage] = useState('')
   const [newTask, setNewTask] = useState({ title: '', category: 'Work', priority: 'Medium' })
   const [editingTask, setEditingTask] = useState(null)
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify(tasks))
@@ -212,6 +212,22 @@ function App() {
             <h2>FocusFlow</h2>
           </div>
         </div>
+
+        <nav className="nav-panel">
+          {['Dashboard', 'Planner', 'Habits', 'Reports'].map((item) => (
+            <button
+              key={item}
+              type="button"
+              aria-label={item}
+              title={isSidebarOpen ? undefined : item}
+              className={`nav-item ${activeNav === item ? 'active' : ''}`}
+              onClick={() => handleNavClick(item)}
+            >
+              <span className="nav-icon" aria-hidden="true">{item.slice(0, 1)}</span>
+              <span className="nav-label">{item}</span>
+            </button>
+          ))}
+        </nav>
 
         <div className="mini-card">
           <p>Current streak</p>
