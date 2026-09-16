@@ -191,20 +191,34 @@
   gap: 7px;
   border: 0;
   padding: 0;
-  margin-bottom: 12px;
+  margin: 0 0 -12px;
   background: transparent;
-  color: #64748b;
+  color: #b9a1ff;
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
 }
 
 .sidebar-toggle:hover {
-  color: #4c1d95;
+  color: #f5f3ff;
 }
 
 .sidebar-toggle span:first-child {
   font-size: 1.1rem;
+}
+
+.sidebar .sidebar-toggle {
+  align-self: flex-start;
+}
+
+.sidebar-collapsed .sidebar-toggle {
+  align-self: center;
+}
+
+.sidebar-collapsed .sidebar-toggle-label {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
 }
 
 .topbar h1 {

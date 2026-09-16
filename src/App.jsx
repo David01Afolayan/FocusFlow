@@ -213,6 +213,17 @@ function App() {
           </div>
         </div>
 
+        <button
+          type="button"
+          className="sidebar-toggle"
+          aria-label={isSidebarOpen ? 'Collapse navigation' : 'Expand navigation'}
+          aria-expanded={isSidebarOpen}
+          onClick={() => setIsSidebarOpen((previous) => !previous)}
+        >
+          <span aria-hidden="true">{isSidebarOpen ? '←' : '→'}</span>
+          <span className="sidebar-toggle-label">{isSidebarOpen ? 'Collapse menu' : 'Open menu'}</span>
+        </button>
+
         <nav className="nav-panel">
           {['Dashboard', 'Planner', 'Habits', 'Reports'].map((item) => (
             <button
@@ -242,16 +253,6 @@ function App() {
       <main className="main-content">
         <header className="topbar">
           <div>
-            <button
-              type="button"
-              className="sidebar-toggle"
-              aria-label={isSidebarOpen ? 'Collapse navigation' : 'Expand navigation'}
-              aria-expanded={isSidebarOpen}
-              onClick={() => setIsSidebarOpen((previous) => !previous)}
-            >
-              <span aria-hidden="true">{isSidebarOpen ? '←' : '→'}</span>
-              <span>{isSidebarOpen ? 'Collapse menu' : 'Open menu'}</span>
-            </button>
             <p className="eyebrow muted">Good evening</p>
             <h1>Plan your best workday</h1>
           </div>
