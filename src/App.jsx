@@ -19,6 +19,17 @@ const focusGoals = [
 ]
 
 const filterOptions = ['All', 'High', 'Medium', 'Low', 'Completed']
+const pageRoutes = {
+  Dashboard: '/dashboard',
+  Planner: '/planner',
+  Habits: '/habits',
+  Reports: '/reports',
+}
+
+const routePages = Object.entries(pageRoutes).reduce((pages, [label, route]) => {
+  pages[route] = label
+  return pages
+}, {})
 
 function App() {
   const [tasks, setTasks] = useState(() => {
@@ -34,13 +45,29 @@ function App() {
   })
 
   const [selectedFilter, setSelectedFilter] = useState('All')
-  const [activeNav, setActiveNav] = useState('Dashboard')
+  const [activeNav, setActiveNav] = useState(() => routePages[window.location.pathname] || 'Dashboard')
   const [isFocusSessionActive, setIsFocusSessionActive] = useState(false)
   const [sessionSecondsLeft, setSessionSecondsLeft] = useState(25 * 60)
   const [reportMessage, setReportMessage] = useState('')
   const [newTask, setNewTask] = useState({ title: '', category: 'Work', priority: 'Medium' })
   const [editingTask, setEditingTask] = useState(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setActiveNav(routePages[window.location.pathname] || 'Dashboard')
+      setIsSidebarOpen(false)
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
+  useEffect(() => {
+    if (!routePages[window.location.pathname]) {
+      window.history.replaceState({}, '', pageRoutes.Dashboard)
+    }
+  }, [])
 
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify(tasks))
@@ -146,6 +173,7 @@ function App() {
   const handleNavClick = (label) => {
     setIsSidebarOpen(false)
     setActiveNav(label)
+    window.history.pushState({}, '', pageRoutes[label])
     if (label === 'Dashboard') {
       setSelectedFilter('All')
       setReportMessage('Dashboard refreshed.')
@@ -195,7 +223,7 @@ function App() {
   }
 
   const handleGoalReview = () => {
-    setActiveNav('Reports')
+    handleNavClick('Reports')
     setSelectedFilter('Completed')
     setReportMessage('Reviewing your goal progress.')
   }
