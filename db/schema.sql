@@ -37,8 +37,13 @@ CREATE TABLE IF NOT EXISTS habits (
   name TEXT NOT NULL CHECK (char_length(trim(name)) > 0),
   frequency TEXT NOT NULL DEFAULT 'daily' CHECK (frequency IN ('daily', 'weekly', 'monthly')),
   target INTEGER NOT NULL DEFAULT 1 CHECK (target > 0),
+  streak INTEGER NOT NULL DEFAULT 0 CHECK (streak >= 0),
+  completed_today BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE habits ADD COLUMN IF NOT EXISTS streak INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE habits ADD COLUMN IF NOT EXISTS completed_today BOOLEAN NOT NULL DEFAULT FALSE;
 
 CREATE INDEX IF NOT EXISTS habits_user_id_idx ON habits (user_id);

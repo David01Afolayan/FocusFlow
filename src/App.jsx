@@ -161,6 +161,29 @@ function App() {
     }
   }, [authState, user?.id])
 
+  useEffect(() => {
+    if (authState !== 'authenticated') return undefined
+    let isMounted = true
+
+    fetch('/api/habits', { credentials: 'include' })
+      .then(async (response) => {
+        if (!response.ok) return
+        const data = await response.json()
+        if (isMounted && Array.isArray(data.habits) && data.habits.length) {
+          setHabits(data.habits.map((habit) => ({
+            ...habit,
+            id: Number(habit.id),
+            completedToday: habit.completed_today,
+          })))
+        }
+      })
+      .catch(() => {})
+
+    return () => {
+      isMounted = false
+    }
+  }, [authState, user?.id])
+
   const syncTask = async (method, body, id) => {
     if (authState !== 'authenticated') return null
 
@@ -181,6 +204,22 @@ function App() {
       return null
     }
 
+  }
+
+  const syncHabit = async (method, body, id) => {
+    if (authState !== 'authenticated') return null
+    try {
+      const response = await fetch(id ? `/api/habits?id=${id}` : '/api/habits', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: body ? JSON.stringify(body) : undefined,
+      })
+      if (!response.ok) throw new Error(`Habit sync failed with status ${response.status}`)
+      return await response.json()
+    } catch {
+      return null
+    }
   }
 
   const handleAuthSubmit = async (event) => {
@@ -341,34 +380,47 @@ function App() {
     setReportMessage('Task deleted.')
   }
 
-  const handleAddHabit = (event) => {
+  const handleAddHabit = async (event) => {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
     const name = String(form.get('name') || '').trim()
     if (!name) return
 
-    setHabits((previous) => [{
+    const habit = {
       id: `habit-${Date.now()}`,
       name,
       frequency: String(form.get('frequency') || 'daily'),
       streak: 0,
       completedToday: false,
       color: '#8b5cf6',
-    }, ...previous])
+    }
+    setHabits((previous) => [habit, ...previous])
+    const data = await syncHabit('POST', habit)
+    if (data?.habit) {
+      setHabits((previous) => previous.map((item) => (
+        item.id === habit.id
+          ? { ...item, ...data.habit, id: Number(data.habit.id), completedToday: data.habit.completed_today }
+          : item
+      )))
+    }
     event.currentTarget.reset()
     setReportMessage(`${name} habit added.`)
   }
 
   const handleHabitCheckIn = (id) => {
+    const habit = habits.find((item) => item.id === id)
+    if (!habit) return
+    const completedToday = !habit.completedToday
+    const streak = completedToday ? habit.streak + 1 : Math.max(0, habit.streak - 1)
     setHabits((previous) => previous.map((habit) => {
       if (habit.id !== id) return habit
-      const completedToday = !habit.completedToday
       return {
         ...habit,
         completedToday,
-        streak: completedToday ? habit.streak + 1 : Math.max(0, habit.streak - 1),
+        streak,
       }
     }))
+    if (typeof id === 'number') syncHabit('PATCH', { id, completedToday, streak })
     setReportMessage('Habit progress updated.')
   }
 

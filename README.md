@@ -6,11 +6,12 @@ The project includes a Vercel serverless tasks API backed by Vercel Postgres:
 
 - `db/schema.sql` creates the task and habit tables.
 - `api/tasks.js` provides authenticated-by-header CRUD endpoints.
+- `api/habits.js` provides authenticated habit CRUD and check-in endpoints.
 - `api/auth.js` provides email/password registration, login, session lookup, and logout.
 - Copy `.env.example` values into Vercel project environment variables.
 - Run `db/schema.sql` once in the connected Postgres SQL editor before using the API.
 
-The task API accepts the secure `focusflow_session` cookie created by `api/auth.js`. The `x-focusflow-user` header remains as a local-development fallback.
+The task and habit APIs accept the secure `focusflow_session` cookie created by `api/auth.js`. The `x-focusflow-user` header remains as a local-development fallback.
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
