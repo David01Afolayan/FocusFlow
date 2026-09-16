@@ -234,6 +234,13 @@
   line-height: 1;
 }
 
+.sidebar-toggle {
+  width: 36px;
+  height: 36px;
+  justify-content: center;
+  margin-bottom: -12px;
+}
+
 .sidebar-toggle:hover {
   color: #f5f3ff;
 }

@@ -236,7 +236,6 @@ function App() {
           onClick={() => setIsSidebarOpen((previous) => !previous)}
         >
           <span aria-hidden="true">{isSidebarOpen ? '←' : '→'}</span>
-          <span className="sidebar-toggle-label">{isSidebarOpen ? 'Collapse menu' : 'Open menu'}</span>
         </button>
 
         <nav className="nav-panel">
